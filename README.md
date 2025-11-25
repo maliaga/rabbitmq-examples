@@ -2,6 +2,13 @@
 
 Servicio en Go que integra RabbitMQ para publicar y consumir mensajes a través de endpoints HTTP.
 
+Este repositorio demuestra diversas **estrategias de envío y publicación de mensajes**, exponiendo una API HTTP para facilitar la integración.
+El proyecto abarca desde conceptos básicos hasta patrones avanzados de confiabilidad, incluyendo:
+*   **Endpoints HTTP** para publicación y consumo.
+*   **Dead Letter Exchange (DLX)** para gestión de errores y reintentos.
+*   **Quorum Queues** para alta disponibilidad y tolerancia a fallos.
+*   Configuración completa con **Docker Compose**.
+
 ## Características
 
 - ✅ Publicar mensajes a RabbitMQ mediante endpoint HTTP POST
