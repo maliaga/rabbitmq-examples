@@ -1,6 +1,3 @@
-¡Claro! Aquí tienes el plan de estudio que hemos generado, presentado en formato Markdown para que puedas compartirlo y usarlo fácilmente.
-
----
 
 # 📚 Plan de Acción y Estudio: RoadMap GGSS
 
