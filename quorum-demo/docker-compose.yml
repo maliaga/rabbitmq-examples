@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  rabbitmq-node1:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-node1
+    hostname: rabbitmq-node1
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI port
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'secret_cookie_for_clustering'
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_NODENAME: rabbit@rabbitmq-node1
+    volumes:
+      - rabbitmq_node1_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq_cluster
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq-node2:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-node2
+    hostname: rabbitmq-node2
+    ports:
+      - "5673:5672" # AMQP port
+      - "15673:15672" # Management UI port
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'secret_cookie_for_clustering'
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_NODENAME: rabbit@rabbitmq-node2
+    volumes:
+      - rabbitmq_node2_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq_cluster
+    depends_on:
+      - rabbitmq-node1
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq-node3:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-node3
+    hostname: rabbitmq-node3
+    ports:
+      - "5674:5672" # AMQP port
+      - "15674:15672" # Management UI port
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'secret_cookie_for_clustering'
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_NODENAME: rabbit@rabbitmq-node3
+    volumes:
+      - rabbitmq_node3_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq_cluster
+    depends_on:
+      - rabbitmq-node1
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Cluster setup container - joins nodes to cluster
+  cluster-setup:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-cluster-setup
+    networks:
+      - rabbitmq_cluster
+    depends_on:
+      rabbitmq-node1:
+        condition: service_healthy
+      rabbitmq-node2:
+        condition: service_healthy
+      rabbitmq-node3:
+        condition: service_healthy
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'secret_cookie_for_clustering'
+    command: >
+      bash -c "
+        sleep 10 &&
+        rabbitmqctl -n rabbit@rabbitmq-node2 stop_app &&
+        rabbitmqctl -n rabbit@rabbitmq-node2 reset &&
+        rabbitmqctl -n rabbit@rabbitmq-node2 join_cluster rabbit@rabbitmq-node1 &&
+        rabbitmqctl -n rabbit@rabbitmq-node2 start_app &&
+        rabbitmqctl -n rabbit@rabbitmq-node3 stop_app &&
+        rabbitmqctl -n rabbit@rabbitmq-node3 reset &&
+        rabbitmqctl -n rabbit@rabbitmq-node3 join_cluster rabbit@rabbitmq-node1 &&
+        rabbitmqctl -n rabbit@rabbitmq-node3 start_app &&
+        echo 'Cluster setup complete!' &&
+        rabbitmqctl -n rabbit@rabbitmq-node1 cluster_status
+      "
+    restart: "no"
+
+networks:
+  rabbitmq_cluster:
+    driver: bridge
+
+volumes:
+  rabbitmq_node1_data:
+  rabbitmq_node2_data:
+  rabbitmq_node3_data:
